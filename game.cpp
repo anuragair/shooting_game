@@ -79,6 +79,7 @@ private:
     bool gameOver;
     int frameCount;
     int enemySpawnRate;
+    int enemyMoveInterval;
     
 public:
     Game() {
@@ -87,11 +88,12 @@ public:
         lives = 3;
         gameOver = false;
         frameCount = 0;
-        enemySpawnRate = 30;  // Spawn enemy every 30 frames initially
+        enemySpawnRate = 45;  // Spawn enemy every 45 frames initially
+        enemyMoveInterval = 2; // Enemies move every N frames (lower = faster)
     }
     
     void handleInput() {
-        if (kbhit()) {
+        while (kbhit()) {
             char ch = getchar();
             
             if (ch == 'a' || ch == 'A') {
@@ -125,7 +127,7 @@ public:
         if (frameCount % enemySpawnRate == 0) {
             spawnEnemy();
             // Increase difficulty over time
-            if (enemySpawnRate > 15) {
+            if (enemySpawnRate > 20) {
                 enemySpawnRate--;
             }
         }
@@ -137,18 +139,23 @@ public:
             }
         }
         
-        // Move enemies
+        // Move enemies (slower than bullets for better playability)
+        bool moveEnemiesThisFrame = (frameCount % enemyMoveInterval == 0);
         for (auto& enemy : enemies) {
             if (enemy.active) {
-                enemy.move();
+                if (moveEnemiesThisFrame) {
+                    enemy.move();
+                }
                 
-                // Check if enemy reached player
-                if (enemy.y >= HEIGHT - 1 && enemy.x == playerX) {
-                    lives--;
-                    enemy.active = false;
-                    if (lives <= 0) {
-                        gameOver = true;
+                // Check if enemy reached player's row
+                if (enemy.y >= HEIGHT - 1) {
+                    if (enemy.x == playerX) {
+                        lives--;
+                        if (lives <= 0) {
+                            gameOver = true;
+                        }
                     }
+                    enemy.active = false;
                 }
             }
         }
@@ -260,8 +267,8 @@ public:
             update();
             draw();
             
-            // Control game speed (about 20 FPS)
-            usleep(50000);  // 50ms delay
+            // Control game speed (about 33 FPS for smoother scrolling)
+            usleep(30000);  // 30ms delay
         }
         
         restoreInput();
